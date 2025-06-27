@@ -1,0 +1,16 @@
+/* Ссылка "Забыли пароль" */
+.forgot-link {
+    display: block;
+    text-align: right;
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 0.875rem;
+    color: #666;
+    text-decoration: none;
+    width: 80%;
+}
+
+.forgot-link:hover {
+    color: var(--lumo-primary-color);
+    text-decoration: underline;
+}

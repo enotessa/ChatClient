@@ -1,0 +1,26 @@
+/* Расположение кнопок */
+.buttons-layout {
+    margin-top: 1.5rem;
+    width: 100%;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .content-container {
+        width: 90%;
+        padding: 1.5rem;
+    }
+
+    .welcome-title {
+        font-size: 2rem;
+    }
+
+    .buttons-layout {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .welcome-button {
+        width: 100%;
+    }
+}

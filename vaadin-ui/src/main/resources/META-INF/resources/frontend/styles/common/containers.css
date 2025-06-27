@@ -1,0 +1,36 @@
+/* Контейнер */
+.content-container {
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(5px);
+    border-radius: 16px;
+    padding: 2.5rem;
+    text-align: center;
+    margin: 0 auto;       /* Автоматические отступы по бокам */
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.welcome-container-width {
+    width: 80%;
+    max-width: 600px;
+}
+
+.form-container-width {
+    width: 60%;
+    max-width: 400px;
+}
+
+/* Контейнер полей */
+.fields-container {
+    width: 80%;
+    display: flex;
+    flex-direction: column;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: var(--lumo-space-s);
+}
+
+/* Анимация при фокусе */
+.fields-container:focus {
+    transition: box-shadow 0.2s;
+    box-shadow: 0 0 0 2px var(--lumo-primary-color-50pct);
+}
