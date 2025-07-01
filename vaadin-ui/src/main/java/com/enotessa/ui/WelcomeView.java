@@ -24,7 +24,7 @@ public class WelcomeView extends StyledVerticalLayout {
 
         // Фоновый слой
         Div background = new Div();
-        background.addClassName("animated-background");
+        background.addClassName("simple-background");
 
         Div backgroundWrapper = new Div(background);
         background.addClassName("background-wrapper");
