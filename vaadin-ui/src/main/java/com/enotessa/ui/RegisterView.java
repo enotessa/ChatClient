@@ -1,10 +1,9 @@
 package com.enotessa.ui;
 
 import com.enotessa.ui.common.StyledVerticalLayout;
-import com.enotessa.ui.dto.RegisterRequest;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.enotessa.ui.dto.RegisterRequestUi;
+import com.enotessa.ui.utils.HandleErrorUtil;
+import com.enotessa.ui.utils.RequestUtil;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
@@ -14,16 +13,19 @@ import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.springframework.beans.factory.annotation.Value;
 
-import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.Map;
 
 @Route("register")
 @PageTitle("Register | RealTimeChat")
 public class RegisterView extends StyledVerticalLayout {
+    @Value("${backChat.host}")
+    private String backHost;
+    @Value("${backChat.port}")
+    private String backPort;
 
     public RegisterView() {
         setSizeFull();
@@ -75,45 +77,20 @@ public class RegisterView extends StyledVerticalLayout {
             return;
         }
         try {
-            RegisterRequest request = new RegisterRequest(
+            RegisterRequestUi request = new RegisterRequestUi(
                     username.getValue(),
                     email.getValue(),
                     password.getValue()
             );
 
-            // Конвертируем в JSON
-            ObjectMapper mapper = new ObjectMapper();
-            String requestBody = mapper.writeValueAsString(request);
+            String requestBody = RequestUtil.convertToJSON(request);
+            HttpRequest httpRequest = RequestUtil.buildHttpRequest(RequestUtil.buildUri(backHost, backPort, "/api/auth/register"), requestBody);
 
-            // Формируем HTTP-запрос
-            HttpClient client = HttpClient.newHttpClient();
-            HttpRequest httpRequest = HttpRequest.newBuilder()
-                    .uri(URI.create("http://127.0.0.1:8082/api/auth/register"))
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                    .build();
             System.out.println("Sending uri: " + httpRequest.uri());
             System.out.println("Sending request: " + requestBody);
-            UI ui = UI.getCurrent();
-            // Отправляем асинхронно
-            client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
-                    .thenAccept(response -> {
-                        System.out.println("📥 Response status: " + response.statusCode());
-                        ui.access(() -> {
-                            System.out.println("📥 Response body: " + response.body());
-                            if (response.statusCode() == 200) {
-                                Notification.show("Регистрация успешна!");
-                            } else {
-                                try {
-                                    Map<String, String> errorMap = mapper.readValue(response.body(), new TypeReference<>() {});
-                                    String errorMessage = errorMap.getOrDefault("error", "Неизвестная ошибка");
-                                    Notification.show("Ошибка: " + errorMessage, 5000, Notification.Position.MIDDLE);
-                                } catch (JsonProcessingException e) {
-                                    Notification.show("Ошибка при обработке ответа: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
-                                }
-                            }
-                        });
-                    });
+
+            HttpClient client = HttpClient.newHttpClient();
+            sendRequest(client, httpRequest);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -121,22 +98,36 @@ public class RegisterView extends StyledVerticalLayout {
         }
     }
 
+    private void sendRequest(HttpClient client, HttpRequest httpRequest) {
+        UI ui = UI.getCurrent();
+        client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
+                .thenAccept(response -> {
+                    System.out.println("Response status: " + response.statusCode());
+                    ui.access(() -> {
+                        System.out.println("Response body: " + response.body());
+                        if (response.statusCode() == 200) {
+                            Notification.show("Регистрация успешна!");
+                            ui.navigate("chatList");
+                        } else {
+                            HandleErrorUtil.handleError(response);
+                        }
+                    });
+                });
+    }
+
     private boolean validateInputs(TextField username, TextField email,
                                    PasswordField password, PasswordField confirmPassword) {
-        // Проверка совпадения паролей
-        if (!password.getValue().equals(confirmPassword.getValue())) {
+
+        if (!arePasswordsEqual(password, confirmPassword)) {
             Notification.show("Passwords don't match!", 3000, Notification.Position.MIDDLE);
             return false;
         }
 
-        // Проверка заполненности полей
-        if (username.getValue().isEmpty() || email.getValue().isEmpty() ||
-                password.getValue().isEmpty()) {
+        if (areFieldsFilledIn(username, email, password)) {
             Notification.show("Please fill all fields!", 3000, Notification.Position.MIDDLE);
             return false;
         }
 
-        // Дополнительные проверки
         if (username.getValue().length() < 3) {
             Notification.show("Username must be at least 3 characters", 3000, Notification.Position.MIDDLE);
             return false;
@@ -148,5 +139,14 @@ public class RegisterView extends StyledVerticalLayout {
         }
 
         return true;
+    }
+
+    private boolean areFieldsFilledIn(TextField username, TextField email, PasswordField password) {
+        return username.getValue().isEmpty() || email.getValue().isEmpty() ||
+                password.getValue().isEmpty();
+    }
+
+    private boolean arePasswordsEqual(PasswordField password, PasswordField confirmPassword) {
+        return password.getValue().equals(confirmPassword.getValue());
     }
 }

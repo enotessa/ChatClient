@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class RegisterRequest {
+public class RegisterRequestUi implements ChatRequest {
     private String login;
     private String email;
     private String password;

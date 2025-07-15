@@ -1,0 +1,147 @@
+/* Основные стили */
+.chat-list-view {
+    background-color: var(--lumo-contrast-5pct);
+    padding: 1.5rem;
+    box-sizing: border-box;
+}
+
+/* Контейнер для поиска и кнопки */
+.search-button-layout {
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+}
+
+/* Поле поиска с закругленными краями */
+.rounded-search-field {
+    margin-bottom: 0;
+}
+
+.rounded-search-field::part(input-field) {
+    border-radius: 25px;
+    background-color: white;
+    border: 1px solid var(--lumo-contrast-20pct);
+    padding-left: 1rem;
+}
+
+/* Кнопка нового чата */
+.icon-button {
+    background-color: #15616D !important;
+    color: white !important;
+    border-radius: 50%;
+    width: 3rem;
+    height: 3rem;
+    transition: all 0.3s;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.icon-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Контейнер списка чатов */
+.chat-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+/* Элемент чата */
+.chat-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: white;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: var(--lumo-box-shadow-xs);
+}
+
+.chat-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--lumo-box-shadow-s);
+    background-color: rgba(21, 97, 109, 0.7);
+}
+
+/* Аватарка */
+.chat-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #15616D;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+/* Контент чата */
+.chat-content {
+    flex-grow: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* Название чата */
+.chat-name {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+}
+
+/* Контейнер сообщения */
+.message-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+/* Последнее сообщение */
+.chat-last-message {
+    font-size: 0.9rem;
+    color: var(--lumo-body-text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-grow: 1;
+    margin-right: 0.5rem;
+}
+
+/* Время */
+.chat-time {
+    font-size: 0.8rem;
+    color: var(--lumo-secondary-text-color);
+    flex-shrink: 0;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .chat-list-view {
+        padding: 1rem;
+    }
+
+    .search-button-layout {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .icon-button {
+        margin-left: 0;
+        align-self: flex-end;
+    }
+
+    .chat-item {
+        padding: 0.75rem;
+    }
+}

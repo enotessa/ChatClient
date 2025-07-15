@@ -1,18 +1,32 @@
 package com.enotessa.ui;
 
 import com.enotessa.ui.common.StyledVerticalLayout;
+import com.enotessa.ui.dto.LoginRequest;
+import com.enotessa.ui.utils.HandleErrorUtil;
+import com.enotessa.ui.utils.RequestUtil;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.springframework.beans.factory.annotation.Value;
+
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
 @Route("login")
 @PageTitle("Login | RealTimeChat")
 public class LoginView extends StyledVerticalLayout {
+    @Value("${backChat.host}")
+    private String backHost;
+    @Value("${backChat.port}")
+    private String backPort;
 
     public LoginView() {
         setSizeFull();
@@ -48,11 +62,51 @@ public class LoginView extends StyledVerticalLayout {
         forgotLink.addClassName("forgot-link");
 
         // Кнопка входа
-        Button loginButton = new Button("Sign In");
+        Button loginButton = new Button(("Sign In"), e ->
+                handleLogin(username, password));
         loginButton.addClassName("button");
 
         formContainer.add(header, fieldsContainer, forgotLink, loginButton);
         add(backgroundWrapper, formContainer);
         setSizeFull();
+    }
+
+    private void handleLogin(TextField username, PasswordField password) {
+        if (username.getValue().isEmpty() || password.getValue().isEmpty()) {
+            Notification.show("Please fill in all fields", 3000, Notification.Position.MIDDLE);
+            return;
+        }
+
+        try {
+            LoginRequest request = new LoginRequest(
+                    username.getValue(),
+                    password.getValue()
+            );
+
+            String requestBody = RequestUtil.convertToJSON(request);
+
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest httpRequest = RequestUtil.buildHttpRequest(RequestUtil.buildUri(backHost, backPort, "/api/auth/login"), requestBody);
+
+            sendRequest(client, httpRequest);
+
+        } catch (Exception e) {
+            Notification.show("Ошибка подключения: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        }
+    }
+
+    private void sendRequest(HttpClient client, HttpRequest httpRequest) {
+        UI ui = UI.getCurrent();
+        client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
+                .thenAccept(response -> {
+                    ui.access(() -> {
+                        if (response.statusCode() == 200) {
+                            Notification.show("Успешный вход!");
+                            UI.getCurrent().navigate("chatList");
+                        } else {
+                            HandleErrorUtil.handleError(response);
+                        }
+                    });
+                });
     }
 }
