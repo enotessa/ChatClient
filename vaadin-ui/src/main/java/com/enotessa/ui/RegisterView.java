@@ -4,6 +4,7 @@ import com.enotessa.ui.common.StyledVerticalLayout;
 import com.enotessa.ui.dto.RegisterRequestUi;
 import com.enotessa.ui.utils.HandleErrorUtil;
 import com.enotessa.ui.utils.RequestUtil;
+import com.enotessa.ui.utils.TokenUtil;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
@@ -13,6 +14,7 @@ import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.net.http.HttpClient;
@@ -26,6 +28,11 @@ public class RegisterView extends StyledVerticalLayout {
     private String backHost;
     @Value("${backChat.port}")
     private String backPort;
+
+    @Autowired
+    TokenUtil tokenUtil;
+    @Autowired
+    RequestUtil requestUtil;
 
     public RegisterView() {
         setSizeFull();
@@ -83,8 +90,8 @@ public class RegisterView extends StyledVerticalLayout {
                     password.getValue()
             );
 
-            String requestBody = RequestUtil.convertToJSON(request);
-            HttpRequest httpRequest = RequestUtil.buildHttpRequest(RequestUtil.buildUri(backHost, backPort, "/api/auth/register"), requestBody);
+            String requestBody = requestUtil.convertToJSON(request);
+            HttpRequest httpRequest = requestUtil.buildHttpRequest(requestUtil.buildUri(backHost, backPort, "/api/auth/register"), requestBody);
 
             System.out.println("Sending uri: " + httpRequest.uri());
             System.out.println("Sending request: " + requestBody);
@@ -106,8 +113,11 @@ public class RegisterView extends StyledVerticalLayout {
                     ui.access(() -> {
                         System.out.println("Response body: " + response.body());
                         if (response.statusCode() == 200) {
+                            tokenUtil.saveTokenToSession(response);
+
                             Notification.show("Регистрация успешна!");
                             ui.navigate("chatList");
+
                         } else {
                             HandleErrorUtil.handleError(response);
                         }

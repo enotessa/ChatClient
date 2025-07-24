@@ -4,6 +4,7 @@ import com.enotessa.ui.common.StyledVerticalLayout;
 import com.enotessa.ui.dto.LoginRequest;
 import com.enotessa.ui.utils.HandleErrorUtil;
 import com.enotessa.ui.utils.RequestUtil;
+import com.enotessa.ui.utils.TokenUtil;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Anchor;
@@ -14,6 +15,7 @@ import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.net.http.HttpClient;
@@ -27,6 +29,11 @@ public class LoginView extends StyledVerticalLayout {
     private String backHost;
     @Value("${backChat.port}")
     private String backPort;
+
+    @Autowired
+    TokenUtil tokenUtil;
+    @Autowired
+    RequestUtil requestUtil;
 
     public LoginView() {
         setSizeFull();
@@ -83,10 +90,10 @@ public class LoginView extends StyledVerticalLayout {
                     password.getValue()
             );
 
-            String requestBody = RequestUtil.convertToJSON(request);
+            String requestBody = requestUtil.convertToJSON(request);
 
             HttpClient client = HttpClient.newHttpClient();
-            HttpRequest httpRequest = RequestUtil.buildHttpRequest(RequestUtil.buildUri(backHost, backPort, "/api/auth/login"), requestBody);
+            HttpRequest httpRequest = requestUtil.buildHttpRequest(requestUtil.buildUri(backHost, backPort, "/api/auth/login"), requestBody);
 
             sendRequest(client, httpRequest);
 
@@ -101,6 +108,8 @@ public class LoginView extends StyledVerticalLayout {
                 .thenAccept(response -> {
                     ui.access(() -> {
                         if (response.statusCode() == 200) {
+                            tokenUtil.saveTokenToSession(response);
+
                             Notification.show("Успешный вход!");
                             UI.getCurrent().navigate("chatList");
                         } else {
