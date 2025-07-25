@@ -1,0 +1,116 @@
+/* Основные стили */
+.chat-view {
+    background-color: #f5f7fa;
+    padding: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Шапка чата */
+.chat-header {
+    width: 100%; /* Занимает всю ширину */
+    background-color: #042229;
+    padding: 0.2rem; /* Увеличил padding для лучшего отображения */
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    min-height: 1.5rem; /* Фиксированная высота шапки */
+}
+
+/* Контейнер сообщений - растянут по всей ширине */
+.messages-container {
+    background-image: url('../../images/chat-bg1.jpg'); /* путь от frontend/resources */
+    background-size: cover;
+    background-position: center;
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Обёртки сообщений */
+.message-wrapper-current {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+}
+
+.message-wrapper-other {
+    display: flex;
+    justify-content: flex-start;
+    width: 100%;
+}
+
+/* Базовый стиль сообщения */
+.message {
+    max-width: 70%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Стили отправителя */
+.message-sender {
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: white;
+    margin-bottom: 0.25rem;
+    margin-left: 0.5rem;
+}
+
+/* Пузыри сообщений */
+.bubble-current, .bubble-other {
+    padding: 0.75rem 1rem;
+    border-radius: 1.5rem;
+    word-wrap: break-word;
+}
+
+.bubble-current {
+    background-color: rgba(158, 201, 208, 0.5);
+    color: white;
+    border-bottom-right-radius: 0.25rem;
+}
+
+.bubble-other {
+    background-color: white;
+    color: #333;
+    border-bottom-left-radius: 0.25rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Панель ввода */
+.input-layout {
+    padding: 1rem;
+    background-color: white;
+    border-top: 1px solid #e0e0e0;
+    flex-shrink: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.message-input {
+    width: 100%;
+}
+
+.message-input::part(input-field) {
+    border-radius: 1.5rem;
+    background-color: #f0f2f5;
+    border: none;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    min-height: 3rem;
+}
+
+/* Анимации */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message-wrapper-current, .message-wrapper-other {
+    animation: fadeIn 0.3s ease-out;
+}

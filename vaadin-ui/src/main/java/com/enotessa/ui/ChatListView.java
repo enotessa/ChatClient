@@ -1,6 +1,7 @@
 package com.enotessa.ui;
 
 import com.enotessa.ui.common.StyledVerticalLayout;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dependency.CssImport;
@@ -99,7 +100,7 @@ public class ChatListView extends StyledVerticalLayout {
 
         content.add(name, messageContainer);
         chatItem.add(avatar, content);
-        chatItem.addClickListener(e -> openChat(chat.getName()));
+        chatItem.addClickListener(e -> openChat(chat.getId()));
 
         return chatItem;
     }
@@ -110,20 +111,28 @@ public class ChatListView extends StyledVerticalLayout {
 
     private List<Chat> getSampleChats() {
         return List.of(
-                new Chat(1L, "Собеседование", "Пройти собеседование на желаемую роль", LocalDateTime.now().minusHours(2)),
-                new Chat(2L, "Игра \"детектив\"", "Найди убийцу", LocalDateTime.now().minusDays(1))
+                new Chat(1, "Собеседование", "Пройти собеседование на желаемую роль", LocalDateTime.now().minusHours(2)),
+                new Chat(2, "Игра \"детектив\"", "Найди убийцу", LocalDateTime.now().minusDays(1))
         );
     }
 
-    private void openChat(String chatName) {
-        Notification.show("Открываем чат \"" + chatName + "\"", 3000, Notification.Position.MIDDLE);
-        // Реальная реализация: UI.getCurrent().navigate(ChatView.class, chatId);
+    private void openChat(int chatId) {
+        switch (chatId) {
+            case 1:
+                Notification.show("Переходим в чат собеседования", 3000, Notification.Position.MIDDLE);
+                UI.getCurrent().navigate("interviewChat");
+                break;
+
+            default:
+                Notification.show("Переход не реализован", 3000, Notification.Position.MIDDLE);
+                break;
+        }
     }
 
     @Getter
     @AllArgsConstructor
     public static class Chat {
-        private Long id;
+        private int id;
         private String name;
         private String description;
         private LocalDateTime lastMessageTime;
