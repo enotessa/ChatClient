@@ -1,5 +1,11 @@
 package com.enotessa.ui;
 
+import com.enotessa.ui.dto.MessageDto;
+import com.enotessa.ui.utils.HandleErrorUtil;
+import com.enotessa.ui.utils.RequestUtil;
+import com.enotessa.ui.utils.TokenUtil;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -7,11 +13,19 @@ import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.LocalDateTime;
 
 @Route("interviewChat")
 @PageTitle("Собеседование | Чат")
@@ -19,12 +33,23 @@ import com.vaadin.flow.router.Route;
 public class InterviewChatView extends VerticalLayout {
 
     Div messagesContainer;
+    @Autowired
+    private RequestUtil requestUtil;
+    @Autowired
+    private TokenUtil tokenUtil;
+
+    @Value("${backChat.host}")
+    private String backHost;
+    @Value("${backChat.port}")
+    private String backPort;
 
     public InterviewChatView() {
         addClassName("chat-view");
         setSizeFull();
         setPadding(false);
         setSpacing(false);
+        Div chatContainer = new Div();
+        chatContainer.addClassNames("chat-background");
 
         // 1. Верхняя панель с круглой кнопкой назад
         Button backButton = new Button(VaadinIcon.ARROW_LEFT.create());
@@ -42,6 +67,7 @@ public class InterviewChatView extends VerticalLayout {
         messagesContainer.add(
                 createMessage("HR", "Здравствуйте! На какую позицию хотите пройти собеседование?", false)
         );
+        chatContainer.add(header, messagesContainer);
 
         // 3. Панель ввода сообщения
         TextField messageField = new TextField();
@@ -59,8 +85,8 @@ public class InterviewChatView extends VerticalLayout {
         inputLayout.setFlexGrow(1, messageField);
 
         // Компоновка
-        add(header, messagesContainer, inputLayout);
-        expand(messagesContainer);
+        add(chatContainer, inputLayout);
+        expand(chatContainer);
     }
 
     private Div createMessage(String sender, String text, boolean isCurrentUser) {
@@ -88,11 +114,26 @@ public class InterviewChatView extends VerticalLayout {
     private void sendMessage(TextField messageField) {
         String text = messageField.getValue();
         if (!text.isEmpty()) {
-            //TODO сделать отправку сообщений на сервер и получение ответа
-            messagesContainer.add(createMessage("Я", text, true));
+            Div myMessage = createMessage("Я", text, true);
+            messagesContainer.add(myMessage);
             messageField.clear();
 
-            // Прокрутка вниз после обновления DOM
+            MessageDto messageDto = new MessageDto(
+                    1,
+                    text,
+                    LocalDateTime.now()
+            );
+            try {
+                String requestBody = requestUtil.convertToJSON(messageDto);
+                HttpClient client = HttpClient.newHttpClient();
+                HttpRequest httpRequest = requestUtil.buildHttpRequest(requestUtil.buildUri(backHost, backPort, "/api/chats/interviewChat"), requestBody);
+
+                sendRequest(client, httpRequest);
+            } catch (Exception e) {
+                Notification.show("Ошибка подключения: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            }
+
+            // Прокрутка вниз
             UI.getCurrent().beforeClientResponse(messagesContainer, ctx -> {
                 UI.getCurrent().getPage().executeJs(
                         "const container = $0; container.scrollTop = container.scrollHeight;",
@@ -100,5 +141,27 @@ public class InterviewChatView extends VerticalLayout {
                 );
             });
         }
+    }
+
+    private void sendRequest(HttpClient client, HttpRequest httpRequest) {
+        UI ui = UI.getCurrent();
+        client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
+                .thenAccept(response -> {
+                    ui.access(() -> {
+                        if (response.statusCode() == 200) {
+                            try {
+                                ObjectMapper objectMapper = new ObjectMapper();
+                                JsonNode jsonNode = objectMapper.readTree(response.body());
+                                String message = jsonNode.get("message").asText();
+                                messagesContainer.add(createMessage("HR", message, false));
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                Notification.show("Ошибка при обработке токена");
+                            }
+                        } else {
+                            HandleErrorUtil.handleError(response);
+                        }
+                    });
+                });
     }
 }
