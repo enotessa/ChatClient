@@ -87,6 +87,9 @@ public class InterviewChatView extends VerticalLayout {
         // Компоновка
         add(chatContainer, inputLayout);
         expand(chatContainer);
+
+        // Добавление JavaScript для эффекта затухания сообщений
+        executeJsCodeForTheEffectOfFadingMessages();
     }
 
     private Div createMessage(String sender, String text, boolean isCurrentUser) {
@@ -163,5 +166,40 @@ public class InterviewChatView extends VerticalLayout {
                         }
                     });
                 });
+    }
+
+    private void executeJsCodeForTheEffectOfFadingMessages(){
+        UI.getCurrent().getPage().executeJs(
+                """
+                const container = $0;
+                function updateMessageOpacity() {
+                    const messages = container.querySelectorAll('.message-wrapper-current, .message-wrapper-other');
+                    const containerTop = container.getBoundingClientRect().top;
+                    const scrollTop = container.scrollTop;
+                    const fadeHeight = 100; // Высота области затухания в пикселях
+                    messages.forEach(message => {
+                        if (scrollTop === 0) {
+                            // Если прокрутка в самом верху, все сообщения полностью непрозрачные
+                            message.style.opacity = 1;
+                        } else {
+                            // Иначе применяем эффект затухания
+                            const messageTop = message.getBoundingClientRect().top - containerTop;
+                            if (messageTop < fadeHeight) {
+                                const opacity = messageTop / fadeHeight;
+                                message.style.opacity = Math.max(0, Math.min(1, opacity));
+                            } else {
+                                message.style.opacity = 1;
+                            }
+                        }
+                    });
+                }
+                // Вызываем при загрузке и при прокрутке
+                updateMessageOpacity();
+                container.addEventListener('scroll', updateMessageOpacity);
+                // Вызываем при добавлении новых сообщений
+                new MutationObserver(updateMessageOpacity).observe(container, { childList: true });
+                """,
+                messagesContainer.getElement()
+        );
     }
 }
