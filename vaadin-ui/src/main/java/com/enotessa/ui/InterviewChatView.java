@@ -129,7 +129,7 @@ public class InterviewChatView extends VerticalLayout {
             try {
                 String requestBody = requestUtil.convertToJSON(messageDto);
                 HttpClient client = HttpClient.newHttpClient();
-                HttpRequest httpRequest = requestUtil.buildHttpRequest(requestUtil.buildUri(backHost, backPort, "/api/chats/interviewChat"), requestBody);
+                HttpRequest httpRequest = requestUtil.buildHttpRequest(requestUtil.buildUri(backHost, backPort, "/api/chats/interview"), requestBody);
 
                 sendRequest(client, httpRequest);
             } catch (Exception e) {
@@ -148,6 +148,7 @@ public class InterviewChatView extends VerticalLayout {
 
     private void sendRequest(HttpClient client, HttpRequest httpRequest) {
         UI ui = UI.getCurrent();
+        System.out.println("отправка сообщения на сервер");
         client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
                 .thenAccept(response -> {
                     ui.access(() -> {
@@ -159,9 +160,11 @@ public class InterviewChatView extends VerticalLayout {
                                 messagesContainer.add(createMessage("HR", message, false));
                             } catch (Exception e) {
                                 e.printStackTrace();
+                                System.out.println("Ошибка при обработке токена");
                                 Notification.show("Ошибка при обработке токена");
                             }
                         } else {
+                            System.out.println("неудачный запрос. status: "+ response.statusCode());
                             HandleErrorUtil.handleError(response);
                         }
                     });
