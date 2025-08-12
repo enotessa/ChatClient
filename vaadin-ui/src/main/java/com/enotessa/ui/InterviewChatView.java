@@ -117,12 +117,13 @@ public class InterviewChatView extends VerticalLayout {
     private void sendMessage(TextField messageField) {
         String text = messageField.getValue();
         if (!text.isEmpty()) {
-            Div myMessage = createMessage("Я", text, true);
+            String sender = "me";
+            Div myMessage = createMessage(sender, text, true);
             messagesContainer.add(myMessage);
             messageField.clear();
 
             MessageDto messageDto = new MessageDto(
-                    1,
+                    sender,
                     text,
                     LocalDateTime.now()
             );

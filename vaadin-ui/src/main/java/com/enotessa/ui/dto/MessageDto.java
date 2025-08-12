@@ -9,8 +9,9 @@ import java.time.LocalDateTime;
 @Data
 @AllArgsConstructor
 public class MessageDto implements ChatRequest {
-    private int chatId;
-    private String text;
+    //private int chatId;
+    private String sender;
+    private String message;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime timestamp;
 }
