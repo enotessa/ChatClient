@@ -124,3 +124,46 @@
 .message-wrapper-current, .message-wrapper-other {
     animation: fadeIn 0.3s ease-out;
 }
+
+/* Стили для выпадающего списка */
+.header-dropdown {
+    width: 200px;
+    background-color: #ffffff;
+    opacity: 1;
+    border-radius: 5px;
+    box-shadow: none; /* Убираем подсветку при фокусе */
+    padding: 8px 12px;
+}
+
+.header-dropdown vaadin-combo-box-overlay {
+    background-color: #ffffff; /* Белый фон для выпадающего меню */
+    opacity: 1;
+    border-radius: 5px;
+    width: 200px; /* Синхронизация ширины с полем ввода */
+}
+
+.header-dropdown [part="input-field"] {
+    background-color: #ffffff; /* Белый фон для поля ввода */
+    opacity: 1;
+    border-radius: 5px;
+    color: #gggggg;
+    width: 200px; /* Синхронизация ширины с полем ввода */
+}
+
+.header-dropdown [part="input-field"]:focus-within {
+    background-color: #ffffff; /* Белый фон при фокусе */
+}
+
+.header-dropdown [part="toggle-button"]::before {
+    color: #ffffff;
+}
+
+.header-dropdown vaadin-combo-box-item {
+    padding: 8px 12px;
+    background-color: #ffffff; /* Явный белый фон для элементов */
+}
+
+.header-dropdown vaadin-combo-box-item:hover {
+    background-color: #28a745 !important; /* Зеленый цвет при наведении */
+    color: #ffffff; /* Белый текст для контраста на зеленом фоне */
+}

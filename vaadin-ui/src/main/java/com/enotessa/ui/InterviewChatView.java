@@ -1,14 +1,18 @@
 package com.enotessa.ui;
 
 import com.enotessa.ui.dto.MessageDto;
+import com.enotessa.ui.dto.ProfessionalPositionDto;
+import com.enotessa.ui.enums.ProfessionEnum;
 import com.enotessa.ui.utils.HandleErrorUtil;
 import com.enotessa.ui.utils.RequestUtil;
 import com.enotessa.ui.utils.TokenUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
@@ -26,6 +30,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 @Route("interviewChat")
 @PageTitle("Собеседование | Чат")
@@ -33,6 +39,8 @@ import java.time.LocalDateTime;
 public class InterviewChatView extends VerticalLayout {
 
     Div messagesContainer;
+    ComboBox<String> optionsMenu = new ComboBox<>();
+
     @Autowired
     private RequestUtil requestUtil;
     @Autowired
@@ -43,6 +51,8 @@ public class InterviewChatView extends VerticalLayout {
     @Value("${backChat.port}")
     private String backPort;
 
+    private final String FIRST_DEFAULT_MESSAGE = "Здравствуйте! Давайте начнем собеседование";
+
     public InterviewChatView() {
         addClassName("chat-view");
         setSizeFull();
@@ -51,13 +61,29 @@ public class InterviewChatView extends VerticalLayout {
         Div chatContainer = new Div();
         chatContainer.addClassNames("chat-background");
 
-        // 1. Верхняя панель с круглой кнопкой назад
+        // 1. Верхняя панель с круглой кнопкой назад и выпадающим списком
         Button backButton = new Button(VaadinIcon.ARROW_LEFT.create());
         backButton.addClassName("round-back-button");
         backButton.addClickListener(e -> UI.getCurrent().navigate("chatList"));
 
-        Div header = new Div(backButton);
-        header.addClassName("chat-header");
+        // Создаем выпадающий список
+        optionsMenu.addClassName("header-dropdown");
+        optionsMenu.setItems(Arrays.stream(ProfessionEnum.values())
+                .map(ProfessionEnum::getDisplayName)
+                .collect(Collectors.toList()));
+        optionsMenu.setPlaceholder(ProfessionEnum.JAVA_MIDDLE.getDisplayName());
+        optionsMenu.addValueChangeListener(event -> {
+            String selected = event.getValue();
+            changeProfessionalPosition(selected);
+        });
+
+        // Контейнер для кнопки и выпадающего списка
+        HorizontalLayout headerLayout = new HorizontalLayout(backButton, optionsMenu);
+        headerLayout.addClassName("chat-header");
+        headerLayout.setWidthFull();
+        headerLayout.setJustifyContentMode(JustifyContentMode.BETWEEN); // Кнопка слева, меню справа
+        headerLayout.setAlignItems(Alignment.CENTER);
+
 
         // 2. Область сообщений с прокруткой
         messagesContainer = new Div();
@@ -65,9 +91,9 @@ public class InterviewChatView extends VerticalLayout {
 
         // Пример сообщений TODO сделать загрузку сообщений с сервера
         messagesContainer.add(
-                createMessage("HR", "Здравствуйте! На какую позицию хотите пройти собеседование?", false)
+                        createMessage("HR", FIRST_DEFAULT_MESSAGE, false)
         );
-        chatContainer.add(header, messagesContainer);
+        chatContainer.add(headerLayout, messagesContainer);
 
         // 3. Панель ввода сообщения
         TextField messageField = new TextField();
@@ -132,7 +158,7 @@ public class InterviewChatView extends VerticalLayout {
                 HttpClient client = HttpClient.newHttpClient();
                 HttpRequest httpRequest = requestUtil.buildHttpRequest(requestUtil.buildUri(backHost, backPort, "/api/chats/interview"), requestBody);
 
-                sendRequest(client, httpRequest);
+                sendMessageRequest(client, httpRequest);
             } catch (Exception e) {
                 Notification.show("Ошибка подключения: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
             }
@@ -147,9 +173,8 @@ public class InterviewChatView extends VerticalLayout {
         }
     }
 
-    private void sendRequest(HttpClient client, HttpRequest httpRequest) {
+    private void sendMessageRequest(HttpClient client, HttpRequest httpRequest) {
         UI ui = UI.getCurrent();
-        System.out.println("отправка сообщения на сервер");
         client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
                 .thenAccept(response -> {
                     ui.access(() -> {
@@ -161,48 +186,83 @@ public class InterviewChatView extends VerticalLayout {
                                 messagesContainer.add(createMessage("HR", message, false));
                             } catch (Exception e) {
                                 e.printStackTrace();
-                                System.out.println("Ошибка при обработке токена");
-                                Notification.show("Ошибка при обработке токена");
+                                System.out.println("Ошибка при обработке ответа");
+                                Notification.show("Ошибка при обработке ответа");
                             }
                         } else {
-                            System.out.println("неудачный запрос. status: "+ response.statusCode());
+                            System.out.println("неудачный запрос. status: " + response.statusCode());
                             HandleErrorUtil.handleError(response);
                         }
                     });
                 });
     }
 
-    private void executeJsCodeForTheEffectOfFadingMessages(){
-        UI.getCurrent().getPage().executeJs(
-                """
-                const container = $0;
-                function updateMessageOpacity() {
-                    const messages = container.querySelectorAll('.message-wrapper-current, .message-wrapper-other');
-                    const containerTop = container.getBoundingClientRect().top;
-                    const scrollTop = container.scrollTop;
-                    const fadeHeight = 100; // Высота области затухания в пикселях
-                    messages.forEach(message => {
-                        if (scrollTop === 0) {
-                            // Если прокрутка в самом верху, все сообщения полностью непрозрачные
-                            message.style.opacity = 1;
-                        } else {
-                            // Иначе применяем эффект затухания
-                            const messageTop = message.getBoundingClientRect().top - containerTop;
-                            if (messageTop < fadeHeight) {
-                                const opacity = messageTop / fadeHeight;
-                                message.style.opacity = Math.max(0, Math.min(1, opacity));
-                            } else {
-                                message.style.opacity = 1;
+    private void changeProfessionalPosition(String selected) {
+        try {
+            ProfessionalPositionDto professionalPositionDto = new ProfessionalPositionDto(selected);
+            String requestBody = requestUtil.convertToJSON(professionalPositionDto);
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest httpRequest = requestUtil.buildHttpRequest(requestUtil.buildUri(backHost, backPort, "/api/chats/interviewProfession"), requestBody);
+            sendMProfessionRequest(client, httpRequest);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void sendMProfessionRequest(HttpClient client, HttpRequest httpRequest) {
+        UI ui = UI.getCurrent();
+        client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
+                .thenAccept(response -> {
+                    ui.access(() -> {
+                        if (response.statusCode() == 200) {
+                            try {
+                                messagesContainer.removeAll();
+                                messagesContainer.add(createMessage("HR", FIRST_DEFAULT_MESSAGE, false));
+                                Notification.show("Вы выбрали собеседование на позицию " + optionsMenu.getValue(), 3000, Notification.Position.TOP_CENTER);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                System.out.println("Ошибка при обработке ответа");
+                                Notification.show("Ошибка при обработке ответа");
                             }
+                        } else {
+                            System.out.println("неудачный запрос. status: " + response.statusCode());
+                            HandleErrorUtil.handleError(response);
                         }
                     });
-                }
-                // Вызываем при загрузке и при прокрутке
-                updateMessageOpacity();
-                container.addEventListener('scroll', updateMessageOpacity);
-                // Вызываем при добавлении новых сообщений
-                new MutationObserver(updateMessageOpacity).observe(container, { childList: true });
-                """,
+                });
+    }
+
+    private void executeJsCodeForTheEffectOfFadingMessages() {
+        UI.getCurrent().getPage().executeJs(
+                """
+                        const container = $0;
+                        function updateMessageOpacity() {
+                            const messages = container.querySelectorAll('.message-wrapper-current, .message-wrapper-other');
+                            const containerTop = container.getBoundingClientRect().top;
+                            const scrollTop = container.scrollTop;
+                            const fadeHeight = 100; // Высота области затухания в пикселях
+                            messages.forEach(message => {
+                                if (scrollTop === 0) {
+                                    // Если прокрутка в самом верху, все сообщения полностью непрозрачные
+                                    message.style.opacity = 1;
+                                } else {
+                                    // Иначе применяем эффект затухания
+                                    const messageTop = message.getBoundingClientRect().top - containerTop;
+                                    if (messageTop < fadeHeight) {
+                                        const opacity = messageTop / fadeHeight;
+                                        message.style.opacity = Math.max(0, Math.min(1, opacity));
+                                    } else {
+                                        message.style.opacity = 1;
+                                    }
+                                }
+                            });
+                        }
+                        // Вызываем при загрузке и при прокрутке
+                        updateMessageOpacity();
+                        container.addEventListener('scroll', updateMessageOpacity);
+                        // Вызываем при добавлении новых сообщений
+                        new MutationObserver(updateMessageOpacity).observe(container, { childList: true });
+                        """,
                 messagesContainer.getElement()
         );
     }
