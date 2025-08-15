@@ -91,7 +91,7 @@ public class InterviewChatView extends VerticalLayout {
 
         // Пример сообщений TODO сделать загрузку сообщений с сервера
         messagesContainer.add(
-                        createMessage("HR", FIRST_DEFAULT_MESSAGE, false)
+                createMessage("HR", FIRST_DEFAULT_MESSAGE, false)
         );
         chatContainer.add(headerLayout, messagesContainer);
 
@@ -184,6 +184,11 @@ public class InterviewChatView extends VerticalLayout {
                                 JsonNode jsonNode = objectMapper.readTree(response.body());
                                 String message = jsonNode.get("message").asText();
                                 messagesContainer.add(createMessage("HR", message, false));
+                                ui.getPage().executeJs(
+                                        "const container = $0; container.scrollTop = container.scrollHeight;",
+                                        messagesContainer.getElement()
+                                );
+                                ui.push();
                             } catch (Exception e) {
                                 e.printStackTrace();
                                 System.out.println("Ошибка при обработке ответа");
@@ -219,6 +224,7 @@ public class InterviewChatView extends VerticalLayout {
                                 messagesContainer.removeAll();
                                 messagesContainer.add(createMessage("HR", FIRST_DEFAULT_MESSAGE, false));
                                 Notification.show("Вы выбрали собеседование на позицию " + optionsMenu.getValue(), 3000, Notification.Position.TOP_CENTER);
+                                ui.push();
                             } catch (Exception e) {
                                 e.printStackTrace();
                                 System.out.println("Ошибка при обработке ответа");
@@ -235,34 +241,34 @@ public class InterviewChatView extends VerticalLayout {
     private void executeJsCodeForTheEffectOfFadingMessages() {
         UI.getCurrent().getPage().executeJs(
                 """
-                        const container = $0;
-                        function updateMessageOpacity() {
-                            const messages = container.querySelectorAll('.message-wrapper-current, .message-wrapper-other');
-                            const containerTop = container.getBoundingClientRect().top;
-                            const scrollTop = container.scrollTop;
-                            const fadeHeight = 100; // Высота области затухания в пикселях
-                            messages.forEach(message => {
-                                if (scrollTop === 0) {
-                                    // Если прокрутка в самом верху, все сообщения полностью непрозрачные
-                                    message.style.opacity = 1;
-                                } else {
-                                    // Иначе применяем эффект затухания
-                                    const messageTop = message.getBoundingClientRect().top - containerTop;
-                                    if (messageTop < fadeHeight) {
-                                        const opacity = messageTop / fadeHeight;
-                                        message.style.opacity = Math.max(0, Math.min(1, opacity));
-                                    } else {
-                                        message.style.opacity = 1;
-                                    }
-                                }
-                            });
+                const container = $0;
+                function updateMessageOpacity() {
+                    const messages = container.querySelectorAll('.message-wrapper-current, .message-wrapper-other');
+                    const scrollTop = container.scrollTop;
+                    const fadeHeight = 150; // Высота области затухания в пикселях
+                    messages.forEach(message => {
+                        if (scrollTop === 0) {
+                            // Если прокрутка в самом верху, все сообщения полностью непрозрачные
+                            message.style.opacity = 1;
+                        } else {
+                            // Иначе применяем эффект затухания на основе нижней части сообщения
+                            const messageTop = message.getBoundingClientRect().top - container.getBoundingClientRect().top;
+                            const messageBottom = messageTop + message.clientHeight;
+                            if (messageBottom < fadeHeight) {
+                                const opacity = messageBottom / fadeHeight;
+                                message.style.opacity = Math.max(0, Math.min(1, opacity));
+                            } else {
+                                message.style.opacity = 1;
+                            }
                         }
-                        // Вызываем при загрузке и при прокрутке
-                        updateMessageOpacity();
-                        container.addEventListener('scroll', updateMessageOpacity);
-                        // Вызываем при добавлении новых сообщений
-                        new MutationObserver(updateMessageOpacity).observe(container, { childList: true });
-                        """,
+                    });
+                }
+                // Вызываем при загрузке и при прокрутке
+                updateMessageOpacity();
+                container.addEventListener('scroll', updateMessageOpacity);
+                // Вызываем при добавлении новых сообщений
+                new MutationObserver(updateMessageOpacity).observe(container, { childList: true });
+                """,
                 messagesContainer.getElement()
         );
     }
