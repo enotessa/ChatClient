@@ -22,6 +22,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
@@ -68,6 +69,11 @@ public class InterviewChatView extends VerticalLayout {
         add(chatContainer, inputLayout);
         expand(chatContainer);
         applyFadingEffect();
+    }
+
+    @PostConstruct
+    private void initialize() {
+        changeProfessionalPosition(ProfessionEnum.JAVA_MIDDLE.getDisplayName());
     }
 
     private void configureMainLayout() {
@@ -194,6 +200,7 @@ public class InterviewChatView extends VerticalLayout {
         bubble.setText(text);
         return bubble;
     }
+
 
     //-- SEND MESSAGE ----------------------------------------------------------------------------
 
