@@ -1,4 +1,4 @@
-package com.enotessa.ui;
+package com.enotessa.ui.views;
 
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;

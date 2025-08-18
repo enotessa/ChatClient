@@ -1,10 +1,12 @@
-package com.enotessa.ui;
+package com.enotessa.ui.views;
 
 import com.enotessa.ui.common.StyledVerticalLayout;
 import com.enotessa.ui.dto.LoginRequest;
 import com.enotessa.ui.utils.HandleErrorUtil;
 import com.enotessa.ui.utils.RequestUtil;
 import com.enotessa.ui.utils.TokenUtil;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Anchor;
@@ -108,10 +110,11 @@ public class LoginView extends StyledVerticalLayout {
                 .thenAccept(response -> {
                     ui.access(() -> {
                         if (response.statusCode() == 200) {
-                            tokenUtil.saveTokenToSession(response);
+                                String token = tokenUtil.getTokenFromResponse(response);
+                                tokenUtil.saveTokenToSession(token);
 
-                            Notification.show("Успешный вход!");
-                            UI.getCurrent().navigate("chatList");
+                                Notification.show("Успешный вход!");
+                                UI.getCurrent().navigate("chatList");
                         } else {
                             HandleErrorUtil.handleError(response);
                         }

@@ -1,4 +1,4 @@
-package com.enotessa.ui;
+package com.enotessa.ui.views;
 
 import com.enotessa.ui.common.StyledVerticalLayout;
 import com.vaadin.flow.component.UI;

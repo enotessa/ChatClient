@@ -1,4 +1,4 @@
-package com.enotessa.ui;
+package com.enotessa.ui.views;
 
 import com.enotessa.ui.dto.MessageDto;
 import com.enotessa.ui.dto.ProfessionalPositionDto;

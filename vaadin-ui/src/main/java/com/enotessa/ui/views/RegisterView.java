@@ -1,4 +1,4 @@
-package com.enotessa.ui;
+package com.enotessa.ui.views;
 
 import com.enotessa.ui.common.StyledVerticalLayout;
 import com.enotessa.ui.dto.RegisterRequestUi;
@@ -94,7 +94,6 @@ public class RegisterView extends StyledVerticalLayout {
             HttpRequest httpRequest = requestUtil.buildHttpRequest(requestUtil.buildUri(backHost, backPort, "/api/auth/register"), requestBody);
 
             System.out.println("Sending uri: " + httpRequest.uri());
-            System.out.println("Sending request: " + requestBody);
 
             HttpClient client = HttpClient.newHttpClient();
             sendRequest(client, httpRequest);
@@ -113,7 +112,8 @@ public class RegisterView extends StyledVerticalLayout {
                     ui.access(() -> {
                         System.out.println("Response body: " + response.body());
                         if (response.statusCode() == 200) {
-                            tokenUtil.saveTokenToSession(response);
+                            String token = tokenUtil.getTokenFromResponse(response);
+                            tokenUtil.saveTokenToSession(token);
 
                             Notification.show("Регистрация успешна!");
                             ui.navigate("chatList");
