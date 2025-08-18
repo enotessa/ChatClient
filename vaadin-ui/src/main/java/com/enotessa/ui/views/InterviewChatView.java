@@ -20,6 +20,8 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.PostConstruct;
@@ -36,7 +38,7 @@ import java.util.stream.Collectors;
 @Route("interviewChat")
 @PageTitle("Собеседование | Чат")
 @CssImport("./styles/views/chat-view.css")
-public class InterviewChatView extends VerticalLayout {
+public class InterviewChatView extends VerticalLayout implements BeforeEnterObserver {
     private HorizontalLayout headerLayout;
     private ComboBox<String> optionsMenu;
     private Button backButton;
@@ -59,6 +61,13 @@ public class InterviewChatView extends VerticalLayout {
     private final String FIRST_DEFAULT_MESSAGE = "Здравствуйте! Давайте начнем собеседование";
     private static final String INTERVIEW_URL_PATH = "/api/chats/interview";
     private static final String PROFESSION_URL_PATH = "/api/chats/interviewProfession";
+
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        if (tokenUtil.getSessionJwtToken() == null) {
+            event.forwardTo("register");
+        }
+    }
 
     public InterviewChatView() {
         configureMainLayout();

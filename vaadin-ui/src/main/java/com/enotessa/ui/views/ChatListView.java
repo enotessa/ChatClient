@@ -1,6 +1,7 @@
 package com.enotessa.ui.views;
 
 import com.enotessa.ui.common.StyledVerticalLayout;
+import com.enotessa.ui.utils.TokenUtil;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -12,10 +13,13 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -23,8 +27,17 @@ import java.util.List;
 
 @Route("chatList")
 @PageTitle("ChatList | Chat App")
-@CssImport("./styles/views/chat-list-styles.css") // Подключаем CSS файл
-public class ChatListView extends StyledVerticalLayout {
+@CssImport("./styles/views/chat-list-styles.css")
+public class ChatListView extends StyledVerticalLayout implements BeforeEnterObserver {
+    @Autowired
+    private TokenUtil tokenUtil;
+
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        if (tokenUtil.getSessionJwtToken() == null) {
+            event.forwardTo("register");
+        }
+    }
 
     public ChatListView() {
         addClassName("chat-list-view");
