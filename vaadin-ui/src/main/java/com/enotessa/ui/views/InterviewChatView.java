@@ -20,8 +20,7 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
+import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.PostConstruct;
@@ -38,7 +37,7 @@ import java.util.stream.Collectors;
 @Route("interviewChat")
 @PageTitle("Собеседование | Чат")
 @CssImport("./styles/views/chat-view.css")
-public class InterviewChatView extends VerticalLayout implements BeforeEnterObserver {
+public class InterviewChatView extends VerticalLayout {
     private HorizontalLayout headerLayout;
     private ComboBox<String> optionsMenu;
     private Button backButton;
@@ -47,6 +46,7 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
     private TextField messageField;
     private Button sendButton;
     private HorizontalLayout inputLayout;
+    private Button micButton;
 
     @Autowired
     private RequestUtil requestUtil;
@@ -66,13 +66,6 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
     private static final String INTERVIEW_URL_PATH = "/api/interview/message";
     private static final String PROFESSION_URL_PATH = "/api/interview/interviewProfession";
     private static final String DELETE_MESSAGES_URL_PATH = "/api/interview/deleteMessages";
-
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        if (tokenUtil.getSessionJwtToken() == null) {
-            event.forwardTo("");
-        }
-    }
 
     public InterviewChatView() {
         configureMainLayout();
@@ -144,6 +137,7 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
     private void configureInputArea() {
         createMessageField();
         createSendButton();
+        createMicButton();
         createInputLayout();
     }
 
@@ -151,6 +145,7 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
         messageField = new TextField();
         messageField.addClassName("message-input");
         messageField.setPlaceholder("Введите сообщение...");
+        messageField.setValueChangeMode(ValueChangeMode.EAGER); // Синхронизация при каждом изменении
         messageField.addKeyPressListener(Key.ENTER, e -> actionSelection(messageField));
     }
 
@@ -160,8 +155,14 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
         sendButton.addClickListener(e -> actionSelection(messageField));
     }
 
+    private void createMicButton() {
+        micButton = new Button(VaadinIcon.MICROPHONE.create());
+        micButton.addClassName("send-button");
+        micButton.addClickListener(e -> startSpeechRecognition());
+    }
+
     private void createInputLayout() {
-        inputLayout = new HorizontalLayout(messageField, sendButton);
+        inputLayout = new HorizontalLayout(messageField, micButton, sendButton);
         inputLayout.addClassName("input-layout");
         inputLayout.setWidthFull();
         inputLayout.setFlexGrow(1, messageField);
@@ -219,9 +220,11 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
 
     private void actionSelection(TextField messageField) {
         String text = messageField.getValue();
-        if (text.isBlank()) return;
-        else if (text.equals("заново")) resetMessages();
-        else sendMessage(text);
+        if (text.isBlank()) {
+            Notification.show("Сообщение пустое", 3000, Notification.Position.MIDDLE);
+        } else if (text.equals("заново")) {
+            resetMessages();
+        } else sendMessage(text);
     }
 
     private void resetMessages() {
@@ -248,6 +251,39 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
         } else {
             HandleErrorUtil.handleError(response);
         }
+    }
+
+    private void startSpeechRecognition() {
+        UI.getCurrent().getPage().executeJs(
+                """
+                        if (!('webkitSpeechRecognition' in window)) {
+                            alert('Распознавание речи не поддерживается в этом браузере');
+                        } else {
+                            const recognition = new webkitSpeechRecognition();
+                            recognition.lang = 'ru-RU';
+                            recognition.interimResults = false;
+                            recognition.maxAlternatives = 1;
+                        
+                            recognition.onresult = function(event) {
+                                const text = event.results[0][0].transcript;
+                                const field = document.querySelector('.message-input input');
+                                if (field.value && field.value.trim() !== '') {
+                                    field.value += ' ' + text;
+                                } else {
+                                    field.value = text;
+                                }
+                                field.dispatchEvent(new Event('input', { bubbles: true }));
+                                field.dispatchEvent(new Event('change', { bubbles: true })); // Добавляем событие change
+                            };
+                        
+                            recognition.onerror = function(event) {
+                                console.error('Speech recognition error:', event.error);
+                            };
+                        
+                            recognition.start();
+                        }
+                        """
+        );
     }
 
 
