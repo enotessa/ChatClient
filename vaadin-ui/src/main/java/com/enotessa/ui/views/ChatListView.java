@@ -35,7 +35,7 @@ public class ChatListView extends StyledVerticalLayout implements BeforeEnterObs
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         if (tokenUtil.getSessionJwtToken() == null) {
-            event.forwardTo("register");
+            event.forwardTo("");
         }
     }
 
@@ -125,7 +125,7 @@ public class ChatListView extends StyledVerticalLayout implements BeforeEnterObs
     private List<Chat> getSampleChats() {
         return List.of(
                 new Chat(1, "Собеседование", "Пройти собеседование на желаемую роль", LocalDateTime.now().minusHours(2)),
-                new Chat(2, "Игра \"детектив\"", "Найди убийцу", LocalDateTime.now().minusDays(1))
+                new Chat(2, "Диетолог", "Составит план питания на каждый день", LocalDateTime.now().minusDays(1))
         );
     }
 

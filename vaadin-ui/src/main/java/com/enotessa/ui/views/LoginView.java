@@ -5,8 +5,6 @@ import com.enotessa.ui.dto.LoginRequest;
 import com.enotessa.ui.utils.HandleErrorUtil;
 import com.enotessa.ui.utils.RequestUtil;
 import com.enotessa.ui.utils.TokenUtil;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Anchor;
@@ -95,7 +93,7 @@ public class LoginView extends StyledVerticalLayout {
             String requestBody = requestUtil.convertToJSON(request);
 
             HttpClient client = HttpClient.newHttpClient();
-            HttpRequest httpRequest = requestUtil.buildHttpRequest(requestUtil.buildUri(backHost, backPort, "/api/auth/login"), requestBody);
+            HttpRequest httpRequest = requestUtil.buildPostHttpRequestWithBody(requestUtil.buildUri(backHost, backPort, "/api/auth/login"), requestBody);
 
             sendRequest(client, httpRequest);
 

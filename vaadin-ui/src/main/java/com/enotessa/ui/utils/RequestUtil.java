@@ -23,7 +23,7 @@ public class RequestUtil {
         return mapper.writeValueAsString(request);
     }
 
-    public HttpRequest buildHttpRequest(String uri, String requestBody) {
+    public HttpRequest buildPostHttpRequestWithBody(String uri, String requestBody) {
         String token = tokenUtil.getSessionJwtToken();
         HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create(uri))
@@ -39,6 +39,24 @@ public class RequestUtil {
         System.out.println("httpRequest: " + httpRequest.uri().toString());
         return httpRequest;
     }
+
+    public HttpRequest buildDeleteHttpRequest(String uri) {
+        String token = tokenUtil.getSessionJwtToken();
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(uri))
+                .header("Content-Type", "application/json");
+
+        if (token != null) {
+            builder.header("Authorization", "Bearer " + token);
+        }
+        HttpRequest httpRequest = builder
+                .DELETE()
+                .build();
+
+        System.out.println("httpRequest: " + httpRequest.uri().toString());
+        return httpRequest;
+    }
+
 
     public String buildUri(String backHost, String backPort, String path) {
         return "http://" + backHost + ":" + backPort + path;

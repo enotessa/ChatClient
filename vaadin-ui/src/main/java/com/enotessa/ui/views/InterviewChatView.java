@@ -58,14 +58,19 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
     @Value("${backChat.port}")
     private String backPort;
 
-    private final String FIRST_DEFAULT_MESSAGE = "Здравствуйте! Давайте начнем собеседование";
-    private static final String INTERVIEW_URL_PATH = "/api/chats/interview";
-    private static final String PROFESSION_URL_PATH = "/api/chats/interviewProfession";
+    private final String FIRST_DEFAULT_MESSAGE = """
+            Здравствуйте! Давайте начнем собеседование.
+            \nЕсли захотите начать собеседование сначала, напиши \"заново\".
+            \nЕсли хотите, чтобы я задал следующий вопрос, напиши \"дальше\" 
+            """;
+    private static final String INTERVIEW_URL_PATH = "/api/interview/message";
+    private static final String PROFESSION_URL_PATH = "/api/interview/interviewProfession";
+    private static final String DELETE_MESSAGES_URL_PATH = "/api/interview/deleteMessages";
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         if (tokenUtil.getSessionJwtToken() == null) {
-            event.forwardTo("register");
+            event.forwardTo("");
         }
     }
 
@@ -146,13 +151,13 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
         messageField = new TextField();
         messageField.addClassName("message-input");
         messageField.setPlaceholder("Введите сообщение...");
-        messageField.addKeyPressListener(Key.ENTER, e -> sendMessage(messageField));
+        messageField.addKeyPressListener(Key.ENTER, e -> actionSelection(messageField));
     }
 
     private void createSendButton() {
         sendButton = new Button(VaadinIcon.PAPERPLANE.create());
         sendButton.addClassName("send-button");
-        sendButton.addClickListener(e -> sendMessage(messageField));
+        sendButton.addClickListener(e -> actionSelection(messageField));
     }
 
     private void createInputLayout() {
@@ -210,18 +215,54 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
         return bubble;
     }
 
+    //-- business logic --------------------------------------------------------------------------
+
+    private void actionSelection(TextField messageField) {
+        String text = messageField.getValue();
+        if (text.isBlank()) return;
+        else if (text.equals("заново")) resetMessages();
+        else sendMessage(text);
+    }
+
+    private void resetMessages() {
+        HttpRequest httpRequest = requestUtil.buildDeleteHttpRequest(
+                requestUtil.buildUri(backHost, backPort, DELETE_MESSAGES_URL_PATH));
+        deleteMessagesRequest(HttpClient.newHttpClient(), httpRequest);
+    }
+
+    private void deleteMessagesRequest(HttpClient client, HttpRequest httpRequest) {
+        UI ui = UI.getCurrent();
+        client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
+                .thenAccept(response -> ui.access(() -> handleDeleteMessagesResponse(response, ui)));
+    }
+
+    private void handleDeleteMessagesResponse(HttpResponse<String> response, UI ui) {
+        if (response.statusCode() == 200) {
+            try {
+                deleteMessagesFromUI();
+                addMessageToUI("HR", FIRST_DEFAULT_MESSAGE, false);
+                ui.push();
+            } catch (Exception e) {
+                Notification.show("Ошибка при обработке ответа");
+            }
+        } else {
+            HandleErrorUtil.handleError(response);
+        }
+    }
+
 
     //-- SEND MESSAGE ----------------------------------------------------------------------------
 
-    private void sendMessage(TextField messageField) {
-        String text = messageField.getValue();
-        if (text.isBlank()) return;
-
-        addMessageToUI("me", text, true);
+    private void sendMessage(String textMessage) {
+        addMessageToUI("me", textMessage, true);
         messageField.clear();
 
-        sendMessageToServer(new MessageDto("me", text, LocalDateTime.now()));
+        sendMessageToServer(new MessageDto("me", textMessage, LocalDateTime.now()));
         scrollMessagesToBottom();
+    }
+
+    private void deleteMessagesFromUI() {
+        messagesContainer.removeAll();
     }
 
     private void addMessageToUI(String sender, String text, boolean isCurrentUser) {
@@ -231,7 +272,7 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
     private void sendMessageToServer(MessageDto messageDto) {
         try {
             String requestBody = requestUtil.convertToJSON(messageDto);
-            HttpRequest httpRequest = requestUtil.buildHttpRequest(
+            HttpRequest httpRequest = requestUtil.buildPostHttpRequestWithBody(
                     requestUtil.buildUri(backHost, backPort, INTERVIEW_URL_PATH),
                     requestBody
             );
@@ -281,7 +322,7 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
     private void changeProfessionalPosition(String selected) {
         try {
             String requestBody = requestUtil.convertToJSON(new ProfessionalPositionDto(selected));
-            HttpRequest httpRequest = requestUtil.buildHttpRequest(
+            HttpRequest httpRequest = requestUtil.buildPostHttpRequestWithBody(
                     requestUtil.buildUri(backHost, backPort, PROFESSION_URL_PATH),
                     requestBody
             );
