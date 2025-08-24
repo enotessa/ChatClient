@@ -63,9 +63,9 @@ public class InterviewChatView extends VerticalLayout {
             \nЕсли захотите начать собеседование сначала, напиши \"заново\".
             \nЕсли хотите, чтобы я задал следующий вопрос, напиши \"дальше\" 
             """;
-    private static final String INTERVIEW_URL_PATH = "/api/interview/message";
-    private static final String PROFESSION_URL_PATH = "/api/interview/interviewProfession";
-    private static final String DELETE_MESSAGES_URL_PATH = "/api/interview/deleteMessages";
+    private static final String INTERVIEW_URL_PATH = "/interview/message";
+    private static final String PROFESSION_URL_PATH = "/interview/interviewProfession";
+    private static final String DELETE_MESSAGES_URL_PATH = "/interview/deleteMessages";
 
     public InterviewChatView() {
         configureMainLayout();

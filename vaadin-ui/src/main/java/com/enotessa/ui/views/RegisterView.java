@@ -91,7 +91,7 @@ public class RegisterView extends StyledVerticalLayout {
             );
 
             String requestBody = requestUtil.convertToJSON(request);
-            HttpRequest httpRequest = requestUtil.buildPostHttpRequestWithBody(requestUtil.buildUri(backHost, backPort, "/api/auth/register"), requestBody);
+            HttpRequest httpRequest = requestUtil.buildPostHttpRequestWithBody(requestUtil.buildUri(backHost, backPort, "/auth/register"), requestBody);
 
             System.out.println("Sending uri: " + httpRequest.uri());
 

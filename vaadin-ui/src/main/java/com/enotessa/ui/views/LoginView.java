@@ -93,7 +93,7 @@ public class LoginView extends StyledVerticalLayout {
             String requestBody = requestUtil.convertToJSON(request);
 
             HttpClient client = HttpClient.newHttpClient();
-            HttpRequest httpRequest = requestUtil.buildPostHttpRequestWithBody(requestUtil.buildUri(backHost, backPort, "/api/auth/login"), requestBody);
+            HttpRequest httpRequest = requestUtil.buildPostHttpRequestWithBody(requestUtil.buildUri(backHost, backPort, "/auth/login"), requestBody);
 
             sendRequest(client, httpRequest);
 
