@@ -1,6 +1,7 @@
 package com.enotessa.ui.views;
 
 import com.enotessa.ui.common.StyledVerticalLayout;
+import com.enotessa.ui.dto.AuthResponse;
 import com.enotessa.ui.dto.LoginRequest;
 import com.enotessa.ui.utils.HandleErrorUtil;
 import com.enotessa.ui.utils.RequestUtil;
@@ -15,108 +16,146 @@ import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.vaadin.flow.server.VaadinSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.concurrent.TimeUnit;
 
 @Route("login")
-@PageTitle("Login | RealTimeChat")
+@PageTitle("Вход | RealTimeChat")
+@Component
 public class LoginView extends StyledVerticalLayout {
-    @Value("${backChat.host}")
-    private String backHost;
-    @Value("${backChat.port}")
-    private String backPort;
+    private static final Logger logger = LoggerFactory.getLogger(LoginView.class);
+    private static final String LOGIN_ENDPOINT = "/auth/login";
+    private static final int NOTIFICATION_DURATION_MS = 5000;
 
-    @Autowired
-    TokenUtil tokenUtil;
-    @Autowired
-    RequestUtil requestUtil;
+    private final TokenUtil tokenUtil;
+    private final RequestUtil requestUtil;
+    private final String backHost;
+    private final String backPort;
 
-    public LoginView() {
+    public LoginView(TokenUtil tokenUtil, RequestUtil requestUtil,
+                     @Value("${backChat.host}") String backHost,
+                     @Value("${backChat.port}") String backPort) {
+        this.tokenUtil = tokenUtil;
+        this.requestUtil = requestUtil;
+        this.backHost = backHost;
+        this.backPort = backPort;
+
+        configureLayout();
+        Div formContainer = createFormContainer();
+        add(createBackgroundWrapper(), formContainer);
+    }
+
+    private void configureLayout() {
         setSizeFull();
         setJustifyContentMode(JustifyContentMode.CENTER);
+        setPadding(false);
         setSpacing(false);
-        setSpacing(false);
+    }
 
-        // Фоновый слой
+    private Div createBackgroundWrapper() {
         Div background = new Div();
         background.addClassName("simple-background");
-
         Div backgroundWrapper = new Div(background);
-        background.addClassName("background-wrapper");
+        backgroundWrapper.addClassName("background-wrapper");
+        return backgroundWrapper;
+    }
 
-        // Основной контейнер формы
+    private Div createFormContainer() {
         Div formContainer = new Div();
         formContainer.addClassNames("content-container", "form-container-width");
 
-        // Заголовок
-        H1 header = new H1("Sign In Form");
+        H1 header = new H1("Вход в систему");
         header.addClassName("h1-title");
 
-        // Поля ввода
-        TextField username = new TextField("Username");
-        PasswordField password = new PasswordField("Password");
+        TextField username = new TextField("Имя пользователя");
+        PasswordField password = new PasswordField("Пароль");
 
-        // Контейнер для полей (для левого выравнивания)
         Div fieldsContainer = new Div(username, password);
         fieldsContainer.addClassName("fields-container");
 
-        // Ссылка "Forgot password"
-        Anchor forgotLink = new Anchor("#", "Forgot your password? Click here");
+        Anchor forgotLink = new Anchor("#", "Забыли пароль? Нажмите здесь");
         forgotLink.addClassName("forgot-link");
 
-        // Кнопка входа
-        Button loginButton = new Button(("Sign In"), e ->
-                handleLogin(username, password));
+        Button loginButton = new Button("Войти", e -> handleLogin(username, password));
         loginButton.addClassName("button");
 
         formContainer.add(header, fieldsContainer, forgotLink, loginButton);
-        add(backgroundWrapper, formContainer);
-        setSizeFull();
+        return formContainer;
     }
 
     private void handleLogin(TextField username, PasswordField password) {
-        if (username.getValue().isEmpty() || password.getValue().isEmpty()) {
-            Notification.show("Please fill in all fields", 3000, Notification.Position.MIDDLE);
+        if (!validateInputs(username, password)) {
             return;
         }
-
         try {
-            LoginRequest request = new LoginRequest(
-                    username.getValue(),
-                    password.getValue()
-            );
-
+            LoginRequest request = new LoginRequest(username.getValue(), password.getValue());
             String requestBody = requestUtil.convertToJSON(request);
-
-            HttpClient client = HttpClient.newHttpClient();
-            HttpRequest httpRequest = requestUtil.buildPostHttpRequestWithBody(requestUtil.buildUri(backHost, backPort, "/auth/login"), requestBody);
-
-            sendRequest(client, httpRequest);
-
+            VaadinSession session = VaadinSession.getCurrent();
+            HttpRequest httpRequest = requestUtil.buildPostHttpRequestWithBody(
+                    requestUtil.buildUri(backHost, backPort, LOGIN_ENDPOINT),
+                    requestBody,
+                    session
+            );
+            logger.debug("Отправка запроса на вход: {}", httpRequest.uri());
+            sendRequest(HttpClient.newHttpClient(), httpRequest, session);
         } catch (Exception e) {
-            Notification.show("Ошибка подключения: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            logger.error("Ошибка при входе: {}", e.getMessage(), e);
+            showErrorNotification("Ошибка подключения: " + e.getMessage());
         }
     }
 
-    private void sendRequest(HttpClient client, HttpRequest httpRequest) {
+    private void sendRequest(HttpClient client, HttpRequest httpRequest, VaadinSession session) {
         UI ui = UI.getCurrent();
         client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
-                .thenAccept(response -> {
+                .orTimeout(10, TimeUnit.SECONDS)
+                .thenAccept(response -> ui.access(() -> handleResponse(response, session, ui)))
+                .exceptionally(throwable -> {
                     ui.access(() -> {
-                        if (response.statusCode() == 200) {
-                                String token = tokenUtil.getTokenFromResponse(response);
-                                tokenUtil.saveTokenToSession(token);
-
-                                Notification.show("Успешный вход!");
-                                UI.getCurrent().navigate("chatList");
-                        } else {
-                            HandleErrorUtil.handleError(response);
-                        }
+                        logger.error("Ошибка отправки запроса на вход: {}", throwable.getMessage(), throwable);
+                        showErrorNotification("Ошибка входа: " + throwable.getMessage());
                     });
+                    return null;
                 });
+    }
+
+    private void handleResponse(HttpResponse<String> response, VaadinSession session, UI ui) {
+        logger.debug("Получен ответ с кодом статуса: {}", response.statusCode());
+        if (response.statusCode() == 200) {
+            AuthResponse authResponse = tokenUtil.getTokensFromResponse(response);
+            if (authResponse != null) {
+                tokenUtil.saveAccessTokenToSession(authResponse.getAccessToken(), session, ui);
+                tokenUtil.saveRefreshTokenToSession(authResponse.getRefreshToken(), session, ui);
+                showSuccessNotification("Успешный вход!");
+                ui.navigate("chatList");
+            } else {
+                showErrorNotification("Ошибка обработки ответа сервера");
+            }
+        } else {
+            HandleErrorUtil.handleError(response);
+        }
+    }
+
+    private boolean validateInputs(TextField username, PasswordField password) {
+        if (username.getValue().isEmpty() || password.getValue().isEmpty()) {
+            showErrorNotification("Заполните все поля!");
+            return false;
+        }
+        return true;
+    }
+
+    private void showErrorNotification(String message) {
+        Notification.show(message, NOTIFICATION_DURATION_MS, Notification.Position.MIDDLE);
+    }
+
+    private void showSuccessNotification(String message) {
+        Notification.show(message, NOTIFICATION_DURATION_MS, Notification.Position.TOP_CENTER);
     }
 }

@@ -17,8 +17,11 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.VaadinSession;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
@@ -29,14 +32,31 @@ import java.util.List;
 @PageTitle("ChatList | Chat App")
 @CssImport("./styles/views/chat-list-styles.css")
 public class ChatListView extends StyledVerticalLayout implements BeforeEnterObserver {
+    private static final Logger logger = LoggerFactory.getLogger(ChatListView.class);
+    private static final int NOTIFICATION_DURATION_MS = 5000;
     @Autowired
     private TokenUtil tokenUtil;
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        if (tokenUtil.getSessionJwtToken() == null) {
-            event.forwardTo("");
-        }
+        VaadinSession session = VaadinSession.getCurrent();
+        UI ui = UI.getCurrent();
+        tokenUtil.isTokenInvalidOrNonRefreshable(session)
+                .thenAccept(invalid -> ui.access(() -> {
+                    if (invalid) {
+                        logger.warn("Token is invalid or non-refreshable, redirecting to login");
+                        showErrorNotification("Токен недействителен, пожалуйста, войдите снова");
+                        event.forwardTo("");
+                    }
+                }))
+                .exceptionally(throwable -> {
+                    ui.access(() -> {
+                        logger.error("Error checking token validity: {}", throwable.getMessage());
+                        showErrorNotification("Ошибка проверки токена: " + throwable.getMessage());
+                        event.forwardTo("");
+                    });
+                    return null;
+                });
     }
 
     public ChatListView() {
@@ -149,5 +169,9 @@ public class ChatListView extends StyledVerticalLayout implements BeforeEnterObs
         private String name;
         private String description;
         private LocalDateTime lastMessageTime;
+    }
+
+    private void showErrorNotification(String message) {
+        Notification.show(message, NOTIFICATION_DURATION_MS, Notification.Position.MIDDLE);
     }
 }
