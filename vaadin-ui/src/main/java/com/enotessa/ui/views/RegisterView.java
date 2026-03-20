@@ -10,7 +10,9 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
@@ -71,6 +73,10 @@ public class RegisterView extends StyledVerticalLayout {
     private Div createFormContainer() {
         Div formContainer = new Div();
         formContainer.addClassNames("content-container", "form-container-width");
+        HorizontalLayout backButtonLayout = new HorizontalLayout(createBackButton());
+        backButtonLayout.setWidthFull();
+        backButtonLayout.setPadding(false);
+        backButtonLayout.setSpacing(false);
 
         H1 header = new H1("Создать аккаунт");
         header.addClassName("h1-titler");
@@ -87,8 +93,15 @@ public class RegisterView extends StyledVerticalLayout {
                 handleRegistration(username, email, password, confirmPassword));
         registerButton.addClassName("button");
 
-        formContainer.add(header, fieldsContainer, registerButton);
+        formContainer.add(backButtonLayout, header, fieldsContainer, registerButton);
         return formContainer;
+    }
+
+    private Button createBackButton() {
+        Button backButton = new Button(VaadinIcon.ARROW_LEFT.create());
+        backButton.addClassName("round-back-button");
+        backButton.addClickListener(event -> getUI().ifPresent(ui -> ui.navigate("")));
+        return backButton;
     }
 
     private void handleRegistration(TextField username, TextField email,

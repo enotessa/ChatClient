@@ -11,7 +11,9 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
@@ -71,6 +73,10 @@ public class LoginView extends StyledVerticalLayout {
     private Div createFormContainer() {
         Div formContainer = new Div();
         formContainer.addClassNames("content-container", "form-container-width");
+        HorizontalLayout backButtonLayout = new HorizontalLayout(createBackButton());
+        backButtonLayout.setWidthFull();
+        backButtonLayout.setPadding(false);
+        backButtonLayout.setSpacing(false);
 
         H1 header = new H1("Вход в систему");
         header.addClassName("h1-title");
@@ -87,8 +93,15 @@ public class LoginView extends StyledVerticalLayout {
         Button loginButton = new Button("Войти", e -> handleLogin(username, password));
         loginButton.addClassName("button");
 
-        formContainer.add(header, fieldsContainer, forgotLink, loginButton);
+        formContainer.add(backButtonLayout, header, fieldsContainer, forgotLink, loginButton);
         return formContainer;
+    }
+
+    private Button createBackButton() {
+        Button backButton = new Button(VaadinIcon.ARROW_LEFT.create());
+        backButton.addClassName("round-back-button");
+        backButton.addClickListener(event -> getUI().ifPresent(ui -> ui.navigate("")));
+        return backButton;
     }
 
     private void handleLogin(TextField username, PasswordField password) {
