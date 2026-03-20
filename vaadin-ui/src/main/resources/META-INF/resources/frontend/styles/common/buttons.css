@@ -10,7 +10,6 @@
     box-shadow: 0 0 0 2px white, 0 0 0 4px #15616D;
 }
 
-/* Кнопка отправки */
 .send-button {
     border-radius: 50%;
     width: 3rem;
@@ -34,18 +33,18 @@
     color: #042229;
     background-color: white;
     border-radius: 50%;
-    width: 1.5rem; /* Слегка увеличил размер */
-    height: 1.5rem;
-    min-width: 1.51rem; /* Важно! Фиксируем размер */
-    min-height: 1.5rem;
+    width: 2.75rem;
+    height: 2.75rem;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
     padding: 0;
     margin-right: auto;
-    display: inline-flex; /* Изменил на inline-flex */
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-sizing: border-box; /* Учитываем границу в размерах */
+    box-sizing: border-box;
 }
 
 .round-back-button:hover {

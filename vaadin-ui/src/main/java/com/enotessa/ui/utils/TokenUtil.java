@@ -116,12 +116,12 @@ public class TokenUtil {
                 .orTimeout(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS)
                 .thenApply(response -> {
                     if (ui != null) {
-                        ui.accessSynchronously(() -> handleResponse(response, session));
-                        return handleResponse(response, session);
-                    } else {
-                        logger.warn("UI недоступен при обработке ответа на обновление токена");
-                        return false;
+                        boolean[] result = {false};
+                        ui.accessSynchronously(() -> result[0] = handleResponse(response, session));
+                        return result[0];
                     }
+                    logger.warn("UI недоступен для обработки ответа на обновление токена");
+                    return false;
                 })
                 .exceptionally(throwable -> {
                     if (ui != null) {
@@ -145,10 +145,9 @@ public class TokenUtil {
                     saveAccessTokenToSession(authResponse.getAccessToken(), session, ui);
                     saveRefreshTokenToSession(authResponse.getRefreshToken(), session, ui);
                     return true;
-                } else {
-                    logger.warn("UI недоступен при сохранении токенов");
-                    return false;
                 }
+                logger.warn("UI недоступен при сохранении токенов");
+                return false;
             }
         }
         HandleErrorUtil.handleError(response);
@@ -164,14 +163,8 @@ public class TokenUtil {
             logger.warn("VaadinSession равен null при сохранении {} токена", tokenType);
             return;
         }
-        if (ui != null) {
-            ui.access(() -> {
-                session.setAttribute(key, token);
-                logger.debug("{} токен сохранен в сессии", tokenType);
-            });
-        } else {
-            logger.warn("UI недоступен при сохранении {} токена", tokenType);
-        }
+        session.setAttribute(key, token);
+        logger.debug("{} токен сохранен в сессии", tokenType);
     }
 
     private String getTokenFromSession(String key, VaadinSession session) {
@@ -207,11 +200,11 @@ public class TokenUtil {
                 logger.warn("Токен не содержит поле срока действия");
                 return true;
             }
-            long exp = payload.get("exp").asLong() * 1000; // Конвертация секунд в миллисекунды
+            long exp = payload.get("exp").asLong() * 1000;
             return exp < System.currentTimeMillis();
         } catch (Exception e) {
             logger.error("Ошибка декодирования токена: {}", e.getMessage(), e);
-            return true; // Считаем токен истекшим при ошибке парсинга
+            return true;
         }
     }
 }

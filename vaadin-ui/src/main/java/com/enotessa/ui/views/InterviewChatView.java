@@ -171,6 +171,10 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
     private void createProfessionDropdown() {
         optionsMenu = new ComboBox<>();
         optionsMenu.addClassName("header-dropdown");
+        optionsMenu.setLabel("Позиция");
+        optionsMenu.setWidth("18rem");
+        optionsMenu.setClearButtonVisible(false);
+        optionsMenu.setAllowCustomValue(false);
         optionsMenu.setItems(Arrays.stream(ProfessionEnum.values())
                 .map(ProfessionEnum::getDisplayName)
                 .collect(Collectors.toList()));
