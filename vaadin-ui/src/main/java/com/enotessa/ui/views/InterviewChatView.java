@@ -56,7 +56,9 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
     private static final int NOTIFICATION_DURATION_MS = 5000;
 
     private HorizontalLayout headerLayout;
+    private HorizontalLayout professionLayout;
     private ComboBox<String> optionsMenu;
+    private Span professionLabel;
     private Button backButton;
     private Div messagesContainer;
     private Div chatContainer;
@@ -145,7 +147,10 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
     }
 
     private void createHeader() {
-        headerLayout = new HorizontalLayout(backButton, optionsMenu);
+        professionLayout = new HorizontalLayout(professionLabel, optionsMenu);
+        professionLayout.setAlignItems(Alignment.CENTER);
+        professionLayout.setSpacing(true);
+        headerLayout = new HorizontalLayout(backButton, professionLayout);
         headerLayout.addClassName("chat-header");
         headerLayout.setWidthFull();
         headerLayout.setJustifyContentMode(JustifyContentMode.BETWEEN);
@@ -167,10 +172,13 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
     }
 
     private void createProfessionDropdown() {
+        professionLabel = new Span("Позиция");
+        professionLabel.addClassName("profession-label");
         optionsMenu = new ComboBox<>();
         optionsMenu.addClassName("header-dropdown");
         optionsMenu.setLabel("Позиция");
         optionsMenu.setWidth("18rem");
+        optionsMenu.setLabel("");
         optionsMenu.setClearButtonVisible(false);
         optionsMenu.setAllowCustomValue(false);
         optionsMenu.setItems(Arrays.stream(ProfessionEnum.values())

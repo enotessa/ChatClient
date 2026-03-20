@@ -134,6 +134,11 @@
     margin-left: auto;
 }
 
+.profession-label {
+    color: white;
+    font-weight: 700;
+}
+
 .header-dropdown::part(label) {
     color: white;
     font-size: 0.78rem;
