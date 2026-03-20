@@ -22,7 +22,6 @@ import com.vaadin.flow.server.VaadinSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -31,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 
 @Route("login")
 @PageTitle("Вход | RealTimeChat")
-@Component
 public class LoginView extends StyledVerticalLayout {
     private static final Logger logger = LoggerFactory.getLogger(LoginView.class);
     private static final String LOGIN_ENDPOINT = "/auth/login";

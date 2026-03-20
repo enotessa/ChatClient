@@ -31,7 +31,6 @@ import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -44,7 +43,6 @@ import java.util.stream.Collectors;
 @Route("interviewChat")
 @PageTitle("Собеседование | Чат")
 @CssImport("./styles/views/chat-view.css")
-@Component
 public class InterviewChatView extends VerticalLayout implements BeforeEnterObserver {
     private static final Logger logger = LoggerFactory.getLogger(InterviewChatView.class);
     private static final String INTERVIEW_URL_PATH = "/interview/message";

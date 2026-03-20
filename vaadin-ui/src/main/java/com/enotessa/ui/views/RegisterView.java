@@ -21,7 +21,6 @@ import com.vaadin.flow.server.VaadinSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -30,7 +29,6 @@ import java.util.concurrent.TimeUnit;
 
 @Route("register")
 @PageTitle("Регистрация | RealTimeChat")
-@Component
 public class RegisterView extends StyledVerticalLayout {
     private static final Logger logger = LoggerFactory.getLogger(RegisterView.class);
     private static final String REGISTER_ENDPOINT = "/auth/register";
