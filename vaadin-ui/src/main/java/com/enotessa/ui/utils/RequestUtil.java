@@ -31,7 +31,7 @@ public class RequestUtil {
         return httpRequestBuilder.buildDeleteHttpRequest(uri, token);
     }
 
-    public String buildUri(String backHost, String backPort, String path) {
-        return httpRequestBuilder.buildUri(backHost, backPort, path);
+    public String buildUri(String path) {
+        return httpRequestBuilder.buildUri(path);
     }
 }

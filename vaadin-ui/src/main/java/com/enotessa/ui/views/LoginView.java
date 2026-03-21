@@ -21,8 +21,6 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.VaadinSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -37,16 +35,15 @@ public class LoginView extends StyledVerticalLayout {
 
     private final TokenUtil tokenUtil;
     private final RequestUtil requestUtil;
-    private final String backHost;
-    private final String backPort;
+    private final HandleErrorUtil handleErrorUtil;
+    private final HttpClient httpClient;
 
     public LoginView(TokenUtil tokenUtil, RequestUtil requestUtil,
-                     @Value("${backChat.host}") String backHost,
-                     @Value("${backChat.port}") String backPort) {
+                     HandleErrorUtil handleErrorUtil, HttpClient httpClient) {
         this.tokenUtil = tokenUtil;
         this.requestUtil = requestUtil;
-        this.backHost = backHost;
-        this.backPort = backPort;
+        this.handleErrorUtil = handleErrorUtil;
+        this.httpClient = httpClient;
 
         configureLayout();
         Div formContainer = createFormContainer();
@@ -111,21 +108,21 @@ public class LoginView extends StyledVerticalLayout {
             String requestBody = requestUtil.convertToJSON(request);
             VaadinSession session = VaadinSession.getCurrent();
             HttpRequest httpRequest = requestUtil.buildPostHttpRequestWithBody(
-                    requestUtil.buildUri(backHost, backPort, LOGIN_ENDPOINT),
+                    requestUtil.buildUri(LOGIN_ENDPOINT),
                     requestBody,
                     session
             );
             logger.debug("Отправка запроса на вход: {}", httpRequest.uri());
-            sendRequest(HttpClient.newHttpClient(), httpRequest, session);
+            sendRequest(httpRequest, session);
         } catch (Exception e) {
             logger.error("Ошибка при входе: {}", e.getMessage(), e);
             showErrorNotification("Ошибка подключения: " + e.getMessage());
         }
     }
 
-    private void sendRequest(HttpClient client, HttpRequest httpRequest, VaadinSession session) {
+    private void sendRequest(HttpRequest httpRequest, VaadinSession session) {
         UI ui = UI.getCurrent();
-        client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
+        httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
                 .orTimeout(10, TimeUnit.SECONDS)
                 .thenAccept(response -> ui.access(() -> handleResponse(response, session, ui)))
                 .exceptionally(throwable -> {
@@ -150,7 +147,7 @@ public class LoginView extends StyledVerticalLayout {
                 showErrorNotification("Ошибка обработки ответа сервера");
             }
         } else {
-            HandleErrorUtil.handleError(response);
+            handleErrorUtil.handleError(response);
         }
     }
 

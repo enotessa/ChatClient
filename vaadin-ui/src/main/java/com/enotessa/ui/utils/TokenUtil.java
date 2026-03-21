@@ -10,7 +10,6 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.server.VaadinSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.net.http.HttpClient;
@@ -31,15 +30,18 @@ public class TokenUtil {
     private static final int NOTIFICATION_DURATION_MS = 5000;
 
     private final HttpRequestBuilder httpRequestBuilder;
-    private final String backHost;
-    private final String backPort;
+    private final HandleErrorUtil handleErrorUtil;
+    private final HttpClient httpClient;
+    private final ObjectMapper objectMapper;
 
     public TokenUtil(HttpRequestBuilder httpRequestBuilder,
-                     @Value("${backChat.host}") String backHost,
-                     @Value("${backChat.port}") String backPort) {
+                     HandleErrorUtil handleErrorUtil,
+                     HttpClient httpClient,
+                     ObjectMapper objectMapper) {
         this.httpRequestBuilder = httpRequestBuilder;
-        this.backHost = backHost;
-        this.backPort = backPort;
+        this.handleErrorUtil = handleErrorUtil;
+        this.httpClient = httpClient;
+        this.objectMapper = objectMapper;
     }
 
     public CompletableFuture<Boolean> isTokenInvalidOrNonRefreshable(VaadinSession session) {
@@ -65,7 +67,6 @@ public class TokenUtil {
 
     public AuthResponse getTokensFromResponse(HttpResponse<String> response) {
         try {
-            ObjectMapper objectMapper = new ObjectMapper();
             JsonNode jsonNode = objectMapper.readTree(response.body());
             if (!jsonNode.hasNonNull("accessToken") || !jsonNode.hasNonNull("refreshToken")) {
                 logger.error("Ответ сервера не содержит accessToken или refreshToken: {}", response.body());
@@ -100,10 +101,10 @@ public class TokenUtil {
         try {
             RefreshRequest request = new RefreshRequest(refreshToken);
             String requestBody = httpRequestBuilder.convertToJSON(request);
-            String uri = httpRequestBuilder.buildUri(backHost, backPort, REFRESH_ENDPOINT);
+            String uri = httpRequestBuilder.buildUri(REFRESH_ENDPOINT);
             HttpRequest httpRequest = httpRequestBuilder.buildPostHttpRequestWithBody(uri, requestBody, null);
             UI ui = UI.getCurrent();
-            return sendRequest(HttpClient.newHttpClient(), httpRequest, session, ui);
+            return sendRequest(httpRequest, session, ui);
         } catch (JsonProcessingException e) {
             logger.error("Ошибка подготовки запроса на обновление токена: {}", e.getMessage(), e);
             showErrorNotification("Ошибка подготовки запроса на обновление токена");
@@ -111,8 +112,8 @@ public class TokenUtil {
         }
     }
 
-    private CompletableFuture<Boolean> sendRequest(HttpClient client, HttpRequest httpRequest, VaadinSession session, UI ui) {
-        return client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
+    private CompletableFuture<Boolean> sendRequest(HttpRequest httpRequest, VaadinSession session, UI ui) {
+        return httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
                 .orTimeout(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS)
                 .thenApply(response -> {
                     if (ui != null) {
@@ -150,7 +151,7 @@ public class TokenUtil {
                 return false;
             }
         }
-        HandleErrorUtil.handleError(response);
+        handleErrorUtil.handleError(response);
         return false;
     }
 
@@ -194,8 +195,7 @@ public class TokenUtil {
                 return true;
             }
             String payloadJson = new String(Base64.getUrlDecoder().decode(parts[1]));
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode payload = mapper.readTree(payloadJson);
+            JsonNode payload = objectMapper.readTree(payloadJson);
             if (!payload.hasNonNull("exp")) {
                 logger.warn("Токен не содержит поле срока действия");
                 return true;

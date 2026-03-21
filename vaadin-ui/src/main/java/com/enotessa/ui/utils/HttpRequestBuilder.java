@@ -1,9 +1,8 @@
 package com.enotessa.ui.utils;
 
+import com.enotessa.ui.configurations.BackendProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
@@ -11,11 +10,16 @@ import java.net.http.HttpRequest;
 
 @Component
 public class HttpRequestBuilder {
+    private final ObjectMapper objectMapper;
+    private final BackendProperties backendProperties;
+
+    public HttpRequestBuilder(ObjectMapper objectMapper, BackendProperties backendProperties) {
+        this.objectMapper = objectMapper;
+        this.backendProperties = backendProperties;
+    }
+
     public String convertToJSON(Object request) throws JsonProcessingException {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());
-        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        return mapper.writeValueAsString(request);
+        return objectMapper.writeValueAsString(request);
     }
 
     public HttpRequest buildPostHttpRequestWithBody(String uri, String requestBody, String token) {
@@ -40,7 +44,7 @@ public class HttpRequestBuilder {
         return builder.DELETE().build();
     }
 
-    public String buildUri(String backHost, String backPort, String path) {
-        return "http://" + backHost + ":" + backPort + path;
+    public String buildUri(String path) {
+        return "http://" + backendProperties.getHost() + ":" + backendProperties.getPort() + path;
     }
 }

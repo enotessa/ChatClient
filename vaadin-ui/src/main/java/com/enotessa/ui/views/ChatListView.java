@@ -22,7 +22,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -34,8 +33,7 @@ import java.util.List;
 public class ChatListView extends StyledVerticalLayout implements BeforeEnterObserver {
     private static final Logger logger = LoggerFactory.getLogger(ChatListView.class);
     private static final int NOTIFICATION_DURATION_MS = 5000;
-    @Autowired
-    private TokenUtil tokenUtil;
+    private final TokenUtil tokenUtil;
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
@@ -59,7 +57,8 @@ public class ChatListView extends StyledVerticalLayout implements BeforeEnterObs
                 });
     }
 
-    public ChatListView() {
+    public ChatListView(TokenUtil tokenUtil) {
+        this.tokenUtil = tokenUtil;
         addClassName("chat-list-view");
         addClassName("simple-background");
         setSizeFull();

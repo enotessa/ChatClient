@@ -30,7 +30,6 @@ import com.vaadin.flow.server.VaadinSession;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -69,16 +68,18 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
 
     private final RequestUtil requestUtil;
     private final TokenUtil tokenUtil;
-    private final String backHost;
-    private final String backPort;
+    private final HandleErrorUtil handleErrorUtil;
+    private final HttpClient httpClient;
+    private final ObjectMapper objectMapper;
 
     public InterviewChatView(RequestUtil requestUtil, TokenUtil tokenUtil,
-                             @Value("${backChat.host}") String backHost,
-                             @Value("${backChat.port}") String backPort) {
+                             HandleErrorUtil handleErrorUtil, HttpClient httpClient,
+                             ObjectMapper objectMapper) {
         this.requestUtil = requestUtil;
         this.tokenUtil = tokenUtil;
-        this.backHost = backHost;
-        this.backPort = backPort;
+        this.handleErrorUtil = handleErrorUtil;
+        this.httpClient = httpClient;
+        this.objectMapper = objectMapper;
         configureMainLayout();
         configureHeader();
         configureMessagesArea();
@@ -90,7 +91,7 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
 
     @PostConstruct
     private void initialize() {
-        changeProfessionalPosition(ProfessionEnum.JAVA_MIDDLE.getDisplayName());
+        changeProfessionalPosition(ProfessionEnum.JAVA_MIDDLE.getDisplayName(), false);
     }
 
     @Override
@@ -185,10 +186,11 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
                 .map(ProfessionEnum::getDisplayName)
                 .collect(Collectors.toList()));
         optionsMenu.setPlaceholder(ProfessionEnum.JAVA_MIDDLE.getDisplayName());
+        optionsMenu.setValue(ProfessionEnum.JAVA_MIDDLE.getDisplayName());
         optionsMenu.addValueChangeListener(event -> {
             String selected = event.getValue();
             if (selected != null) {
-                changeProfessionalPosition(selected);
+                changeProfessionalPosition(selected, true);
             }
         });
     }
@@ -310,8 +312,8 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
                         ui.navigate("");
                     } else {
                         HttpRequest httpRequest = requestUtil.buildDeleteHttpRequest(
-                                requestUtil.buildUri(backHost, backPort, DELETE_MESSAGES_URL_PATH), session);
-                        deleteMessagesRequest(HttpClient.newHttpClient(), httpRequest, ui);
+                                requestUtil.buildUri(DELETE_MESSAGES_URL_PATH), session);
+                        deleteMessagesRequest(httpRequest, ui);
                     }
                 }))
                 .exceptionally(throwable -> {
@@ -328,8 +330,8 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
                 });
     }
 
-    private void deleteMessagesRequest(HttpClient client, HttpRequest httpRequest, UI ui) {
-        client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
+    private void deleteMessagesRequest(HttpRequest httpRequest, UI ui) {
+        httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
                 .orTimeout(10, TimeUnit.SECONDS)
                 .thenAccept(response -> ui.access(() -> handleDeleteMessagesResponse(response, ui)))
                 .exceptionally(throwable -> {
@@ -351,7 +353,7 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
             addMessageToUI("HR", FIRST_DEFAULT_MESSAGE, false);
             safePush(ui);
         } else {
-            HandleErrorUtil.handleError(response);
+            handleErrorUtil.handleError(response);
         }
     }
 
@@ -448,10 +450,10 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
                         try {
                             String requestBody = requestUtil.convertToJSON(messageDto);
                             HttpRequest httpRequest = requestUtil.buildPostHttpRequestWithBody(
-                                    requestUtil.buildUri(backHost, backPort, INTERVIEW_URL_PATH),
+                                    requestUtil.buildUri(INTERVIEW_URL_PATH),
                                     requestBody, session
                             );
-                            sendMessageRequest(HttpClient.newHttpClient(), httpRequest, ui);
+                            sendMessageRequest(httpRequest, ui);
                         } catch (JsonProcessingException e) {
                             logger.error("Ошибка отправки сообщения на сервер: {}", e.getMessage(), e);
                             showErrorNotification("Ошибка подключения: " + e.getMessage());
@@ -472,8 +474,8 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
                 });
     }
 
-    private void sendMessageRequest(HttpClient client, HttpRequest httpRequest, UI ui) {
-        client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
+    private void sendMessageRequest(HttpRequest httpRequest, UI ui) {
+        httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
                 .orTimeout(10, TimeUnit.SECONDS)
                 .thenAccept(response -> ui.access(() -> handleServerResponse(response, ui)))
                 .exceptionally(throwable -> {
@@ -492,7 +494,7 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
     private void handleServerResponse(HttpResponse<String> response, UI ui) {
         if (response.statusCode() == 200) {
             try {
-                String message = new ObjectMapper()
+                String message = objectMapper
                         .readTree(response.body())
                         .get("message")
                         .asText();
@@ -504,7 +506,7 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
                 showErrorNotification("Ошибка при обработке ответа");
             }
         } else {
-            HandleErrorUtil.handleError(response);
+            handleErrorUtil.handleError(response);
         }
     }
 
@@ -519,7 +521,7 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
         }
     }
 
-    private void changeProfessionalPosition(String selected) {
+    private void changeProfessionalPosition(String selected, boolean showNotification) {
         VaadinSession session = VaadinSession.getCurrent();
         UI ui = UI.getCurrent();
         if (ui == null || session == null) {
@@ -540,10 +542,10 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
                         try {
                             String requestBody = requestUtil.convertToJSON(new ProfessionalPositionDto(selected));
                             HttpRequest httpRequest = requestUtil.buildPostHttpRequestWithBody(
-                                    requestUtil.buildUri(backHost, backPort, PROFESSION_URL_PATH),
+                                    requestUtil.buildUri(PROFESSION_URL_PATH),
                                     requestBody, session
                             );
-                            sendProfessionRequest(HttpClient.newHttpClient(), httpRequest, ui);
+                            sendProfessionRequest(httpRequest, ui, selected, showNotification);
                         } catch (JsonProcessingException e) {
                             logger.error("Ошибка изменения профессиональной позиции: {}", e.getMessage(), e);
                             showErrorNotification("Ошибка изменения позиции: " + e.getMessage());
@@ -564,10 +566,11 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
                 });
     }
 
-    private void sendProfessionRequest(HttpClient client, HttpRequest httpRequest, UI ui) {
-        client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
+    private void sendProfessionRequest(HttpRequest httpRequest, UI ui,
+                                       String selectedProfession, boolean showNotification) {
+        httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
                 .orTimeout(10, TimeUnit.SECONDS)
-                .thenAccept(response -> ui.access(() -> handleProfessionResponse(response, ui)))
+                .thenAccept(response -> ui.access(() -> handleProfessionResponse(response, ui, selectedProfession, showNotification)))
                 .exceptionally(throwable -> {
                     if (ui != null) {
                         ui.access(() -> {
@@ -581,14 +584,17 @@ public class InterviewChatView extends VerticalLayout implements BeforeEnterObse
                 });
     }
 
-    private void handleProfessionResponse(HttpResponse<String> response, UI ui) {
+    private void handleProfessionResponse(HttpResponse<String> response, UI ui,
+                                          String selectedProfession, boolean showNotification) {
         if (response.statusCode() == 200) {
             deleteMessagesFromUI();
             addMessageToUI("HR", FIRST_DEFAULT_MESSAGE, false);
-            showErrorNotification("Вы выбрали собеседование на позицию " + optionsMenu.getValue());
+            if (showNotification) {
+                showErrorNotification("Вы выбрали собеседование на позицию " + selectedProfession);
+            }
             safePush(ui);
         } else {
-            HandleErrorUtil.handleError(response);
+            handleErrorUtil.handleError(response);
         }
     }
 
